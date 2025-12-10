@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Taller de Arte</title>
+
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      margin: 20px; /* Margen reducido para móviles */
+      background: #d2b48c;
+      display: flex;
+      justify-content: center;
+      min-height: 90vh; /* Centrado vertical */
+      align-items: center;
+    }
+
+    .container {
+      background: #f5e9d2;
+      padding: 20px;
+      /* Ajuste para móviles: Ancho máximo 420px, pero se achica si la pantalla es menor */
+      width: 100%;
+      max-width: 420px; 
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      background-image: url("https://www.transparenttextures.com/patterns/paper.png");
+      box-sizing: border-box; /* Importante para que el padding no rompa el ancho */
+    }
+
+    h2 {
+      text-align: center;
+      color: #5c442a;
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #3b2a18;
+    }
+
+    /* Estilos inputs más cómodos para el dedo */
+    input, select {
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid #765c3b;
+      margin-top: 6px;
+      background: #fffaf0;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #3b2a18;
+      box-shadow: 0 0 5px rgba(118, 92, 59, 0.5);
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    #calcular {
+      margin-top: 25px;
+      background: #7b5e3b;
+      color: white;
+    }
+
+    #calcular:active {
+      background: #4e3822;
+      transform: scale(0.98);
+    }
+
+    #resultado {
+      margin-top: 25px;
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      color: #3b2a18;
+      padding: 10px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 8px;
+      display: none; /* Oculto hasta calcular */
+    }
+
+    #nota {
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: normal;
+      text-align: center;
+      color: #fff;
+      background: #333;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
+
+    /* Link estilo botón WhatsApp */
+    #whatsapp {
+      margin-top: 15px;
+      display: none;
+      text-decoration: none;
+    }
+
+    #whatsapp button {
+      background: #25D366;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    #whatsapp button:hover {
+      background: #1ebc57;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Pedido de Bastidores</h2>
+
+    <label>Ancho (cm)</label>
+    <input type="number" inputmode="numeric" id="ancho" placeholder="Ej: 40" />
+
+    <label>Alto (cm)</label>
+    <input type="number" inputmode="numeric" id="alto" placeholder="Ej: 50" />
+
+    <label>Tipo de bastidor</label>
+    <select id="tipo">
+      <option value="Lienzo">Lienzo (Tela)</option>
+      <option value="MDF">MDF (Rígido 3mm)</option>
+    </select>
+
+    <label>Cantidad</label>
+    <select id="cantidad">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+    </select>
+
+    <button id="calcular" onclick="calcular()">Calcular Precio</button>
+
+    <div id="resultado"></div>
+
+    <div id="nota">
+      ⚠️ Los materiales se compran únicamente con previo depósito o pago.
+    </div>
+
+    <a id="whatsapp" target="_blank">
+      <button>📱 Enviar pedido por WhatsApp</button>
+    </a>
+
+  </div>
+
+<script>
+// --- CONFIGURACIÓN DE PRECIOS (EDITAR AQUÍ) ---
+const CONFIG = {
+  telefonoWhatsapp: "59899476235", // Tu número (sin +)
+  precioAlfajia_metro: 140,       // Precio de la varilla de 2.40m (se divide abajo)
+  precioLienzo_cm2: 0.019,        // Precio por cm2 de tela/imprimación
+  costoFijo: 60,                  // Costo fijo (grapas, cola, luz)
+  solape: 30,                     // Tela extra para doblar (total ambos lados)
+  gananciaLienzo: 1.43,           // Multiplicador de ganancia (43%)
+  factorMdf: 1.40                 // El MDF cuesta 40% más que el lienzo
+};
+
+function calcular() {
+  // 1. Leer valores
+  const ancho = parseFloat(document.getElementById("ancho").value);
+  const alto = parseFloat(document.getElementById("alto").value);
+  const tipo = document.getElementById("tipo").value;
+  const cantidad = parseInt(document.getElementById("cantidad").value, 10);
+
+  // 2. Validación
+  const resultadoDiv = document.getElementById("resultado");
+  const whatsappBtn = document.getElementById("whatsapp");
+
+  if (!ancho || !alto || ancho <= 0 || alto <= 0) {
+    resultadoDiv.style.display = "block";
+    resultadoDiv.innerText = "Por favor ingresa medidas válidas.";
+    resultadoDiv.style.color = "red";
+    whatsappBtn.style.display = "none";
+    return;
+  }
+
+  // 3. Cálculos Internos
+  const precioAlfajia_cm = CONFIG.precioAlfajia_metro / 240; 
+
+  // Madera perimetral
+  let metrosMadera = 2 * (ancho + alto);
+  
+  // Cruceta (travesaño) si es grande
+  if (ancho > 50 && alto > 50) {
+    metrosMadera += Math.min(ancho, alto);
+  }
+  
+  const costoMadera = metrosMadera * precioAlfajia_cm;
+  const costoImprimacion = (ancho * alto) * CONFIG.precioLienzo_cm2;
+  const costoBase = costoMadera + costoImprimacion + CONFIG.costoFijo;
+
+  // Cálculo de Tela (aunque sea MDF usamos esta base según tu lógica)
+  const areaTela = (ancho + CONFIG.solape) * (alto + CONFIG.solape);
+  const costoTela = areaTela * CONFIG.precioLienzo_cm2;
+  
+  const costoTotalBase = costoBase + costoTela;
+  
+  // Precio Unitario Base (Lienzo)
+  let precioUnitario = Math.round(costoTotalBase * CONFIG.gananciaLienzo);
+
+  // Ajuste si es MDF
+  if (tipo === "MDF") {
+    precioUnitario = Math.round(precioUnitario * CONFIG.factorMdf);
+  }
+
+  const precioFinal = precioUnitario * cantidad;
+
+  // 4. Mostrar Resultado
+  resultadoDiv.style.display = "block";
+  resultadoDiv.style.color = "#3b2a18";
+  resultadoDiv.innerHTML = `Total: $${precioFinal}<br><span style='font-size:16px; font-weight:normal'>($${precioUnitario} c/u)</span>`;
+
+  // 5. Configurar WhatsApp
+  const mensaje = 
+    `Hola! Quisiera pedir ${cantidad} bastidor(es) de: ` +
+    `*${ancho} x ${alto} cm* en *${tipo}*. ` +
+    `El precio calculado es: $${precioFinal}.`;
+    
+  const enlace = `https://wa.me/${CONFIG.telefonoWhatsapp}?text=${encodeURIComponent(mensaje)}`;
+  
+  whatsappBtn.href = enlace;
+  whatsappBtn.style.display = "block";
+}
+</script>
+
+</body>
+</html>
+
